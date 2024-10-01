@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:bloc/bloc.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 // ignore: depend_on_referenced_packages
 import 'package:meta/meta.dart';
 import 'package:http/http.dart' as http;
@@ -61,17 +62,16 @@ class DownloadCubit extends Cubit<DownloadState> {
     emit(DownloadInitial());
   }
 
-  Future<bool> requestWritePermission() async {
-    try {
+  static Future<bool> requestWritePermission() async {
+    final info = await DeviceInfoPlugin().androidInfo;
+    if (Platform.isAndroid && info.version.sdkInt > 29) {
+      await Permission.manageExternalStorage.request();
+    } else {
       await Permission.storage.request();
-      final status = await Permission.storage.request();
-      if (status.isPermanentlyDenied) {
-        openAppSettings();
-      }
-      return status.isGranted;
-    } catch (e) {
-      rethrow;
     }
+
+    await Permission.storage.request();
+    return await Permission.storage.request().isGranted;
   }
 
   Future<bool> checkFileExists(String fileName) async {
